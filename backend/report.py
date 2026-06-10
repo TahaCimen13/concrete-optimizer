@@ -94,26 +94,32 @@ def build_scenario_report(scenario: dict, model_metrics: dict | None = None) -> 
     story.append(HRFlowable(width="100%", thickness=2,
                             color=colors.HexColor("#2e6da4"), spaceAfter=16))
 
-    story.append(Paragraph("1. Objective Weights", heading_style))
+    _total = (w_co2 + w_cost + w_str) or 1
+    def _pct(w):
+        return f"{round(w / _total * 100)}%"
+
+    story.append(Paragraph("1. Objective Priorities", heading_style))
     story.append(Paragraph(
         "The composite objective uses the Weighted Sum Method "
-        "(F = w1·f_CO2 + w2·f_Cost − w3·f_Strength). Weights below reflect "
-        "the engineering priorities selected for this scenario.",
+        "(F = w1·f_CO2 + w2·f_Cost − w3·f_Strength). The values below are relative "
+        "<b>priorities</b> (a share of 100%, not physical units) — they express how "
+        "much each objective is emphasized for this scenario.",
         body_style,
     ))
     story.append(Spacer(1, 6))
     story.append(table(
-        [["Objective", "Weight", "Direction"],
-         ["CO2 Emissions", f"{w_co2:g}", "Minimize"],
-         ["Material Cost", f"{w_cost:g}", "Minimize"],
-         ["Compressive Strength", f"{w_str:g}", "Maximize"]],
+        [["Objective", "Priority", "Direction"],
+         ["CO2 Emissions", _pct(w_co2), "Minimize"],
+         ["Material Cost", _pct(w_cost), "Minimize"],
+         ["Compressive Strength", _pct(w_str), "Maximize"]],
         [7 * cm, 4 * cm, 4 * cm],
     ))
 
     story.append(Paragraph("2. Engineering Constraint", heading_style))
     story.append(Paragraph(
-        f"Minimum compressive strength: <b>{min_strength} MPa</b>. "
-        "Mixes below this threshold were excluded from the candidate set.",
+        f"Minimum compressive strength: <b>{min_strength} MPa</b> (an actual strength "
+        "threshold, in megapascals — distinct from the priority above). Mixes below "
+        "this value were excluded from the candidate set.",
         body_style,
     ))
 
