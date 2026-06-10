@@ -1,9 +1,10 @@
 """ML compressive-strength predictor.
 
-A GradientBoostingRegressor predicts strength (MPa) from the 7 mix components
-plus age. `train_on(df)` trains+evaluates on any dataset (used for the default
-UCI data and for uploaded datasets); the prediction helpers take an explicit
-model so different scopes can use different models.
+A HistGradientBoostingRegressor predicts strength (MPa) from the 7 mix components
+plus age. It is much faster to train than the classic GradientBoosting (important
+because uploaded datasets retrain on the fly, behind a request), with comparable
+accuracy. `train_on(df)` trains+evaluates on any dataset; the prediction helpers
+take an explicit model so different scopes can use different models.
 """
 from __future__ import annotations
 
@@ -12,7 +13,7 @@ import os
 
 import joblib
 import numpy as np
-from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score, train_test_split
 
@@ -29,40 +30,47 @@ MODEL_FEATURES = config.COMPONENTS + ["age"]  # 8 features, fixed order
 _default = None  # (model, metrics) for the UCI default, cached
 
 
-def _build() -> GradientBoostingRegressor:
-    return GradientBoostingRegressor(
-        n_estimators=500, learning_rate=0.05, max_depth=4, subsample=0.9, random_state=42,
+def _build() -> HistGradientBoostingRegressor:
+    return HistGradientBoostingRegressor(
+        max_iter=400, learning_rate=0.08, max_depth=6, random_state=42,
     )
 
 
-def train_on(df) -> tuple[GradientBoostingRegressor, dict]:
-    """Train, evaluate (hold-out + 5-fold CV), and refit on the full dataset."""
+def train_on(df, with_cv: bool = True) -> tuple[HistGradientBoostingRegressor, dict]:
+    """Train, evaluate (hold-out, optional 5-fold CV), and refit on full data.
+
+    with_cv=False skips the 5-fold cross-validation (5 extra model fits) so that
+    on-the-fly retraining after an upload stays fast enough to finish within the
+    request/proxy timeout. The default UCI model (built offline) keeps with_cv=True.
+    """
     X = df[MODEL_FEATURES].to_numpy()
     y = df["strength"].to_numpy()
 
     X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=42)
     evaluator = _build().fit(X_tr, y_tr)
     pred = evaluator.predict(X_te)
-    # Dataset rows may be ordered; shuffle the CV folds.
-    kf = KFold(n_splits=5, shuffle=True, random_state=42)
-    cv_r2 = cross_val_score(_build(), X, y, cv=kf, scoring="r2")
 
     metrics = {
         "r2": round(float(r2_score(y_te, pred)), 4),
         "rmse": round(float(np.sqrt(mean_squared_error(y_te, pred))), 3),
         "mae": round(float(mean_absolute_error(y_te, pred)), 3),
-        "cv_r2_mean": round(float(cv_r2.mean()), 4),
-        "cv_r2_std": round(float(cv_r2.std()), 4),
         "n_samples": int(len(df)),
-        "model": "GradientBoostingRegressor",
+        "model": "HistGradientBoostingRegressor",
         "features": MODEL_FEATURES,
     }
+
+    if with_cv:
+        # Dataset rows may be ordered; shuffle the CV folds.
+        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        cv_r2 = cross_val_score(_build(), X, y, cv=kf, scoring="r2")
+        metrics["cv_r2_mean"] = round(float(cv_r2.mean()), 4)
+        metrics["cv_r2_std"] = round(float(cv_r2.std()), 4)
 
     model = _build().fit(X, y)  # production model: full data
     return model, metrics
 
 
-def default_model() -> tuple[GradientBoostingRegressor, dict]:
+def default_model() -> tuple[HistGradientBoostingRegressor, dict]:
     """The UCI-trained model, cached in memory and on disk."""
     global _default
     if _default is not None:

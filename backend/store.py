@@ -137,7 +137,8 @@ def set_uploaded(
     else:
         source = f"Uploaded: {filename} ({len(df)} samples)"
 
-    m, metrics = model_mod.train_on(df)
+    # Skip CV here — retraining runs inside the upload request, so keep it fast.
+    m, metrics = model_mod.train_on(df, with_cv=False)
     metrics = {**metrics, "source": source}
 
     if user_id:
