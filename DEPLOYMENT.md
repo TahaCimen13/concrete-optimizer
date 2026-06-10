@@ -10,19 +10,15 @@ Browser ─▶ Vercel (Next.js)  ──/py proxy──▶  Render (FastAPI + ML)
 
 ---
 
-## 1) Push to GitHub
+## 1) GitHub ✅ (tamamlandı)
 
-The repo is initialized at the project root (single monorepo: `frontend/` + `backend/`).
-`.env*`, `node_modules`, `.venv`, `storage/` are gitignored — secrets are NOT committed.
+Repo canlı: **https://github.com/TahaCimen13/concrete-optimizer** (public, monorepo:
+`frontend/` + `backend/`). `.env*`, `node_modules`, `.venv`, `storage/` gitignore'da.
 
+Sonraki değişiklikleri yüklemek için:
 ```bash
 cd /Users/main/Workspace/concrete_optimizer
-git add -A
-git commit -m "ConcreteDSS"
-# Create an empty repo on github.com first, then:
-git remote add origin https://github.com/<kullanıcı-adın>/concrete-optimizer.git
-git branch -M main
-git push -u origin main
+git add -A && git commit -m "..." && git push
 ```
 
 ---
