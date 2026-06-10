@@ -9,9 +9,12 @@ backend/.venv/
 **/__pycache__/
 *.pyc
 .pytest_cache/
-# Regenerable at build time (dataset downloaded, model trained):
-backend/data/
+# Model trained at build time:
 backend/models/
+# Dataset: ignore the downloaded .xls but commit the small CSV so the Docker
+# build needs no network (more reliable than downloading from UCI at build).
+backend/data/*
+!backend/data/concrete.csv
 # Per-user uploaded datasets/models (runtime state):
 backend/storage/
 
