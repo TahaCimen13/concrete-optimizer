@@ -25,6 +25,11 @@ frontend/out/
 frontend/.vercel/
 frontend/next-env.d.ts
 
+# ── Editor / tooling ─────────────────────────────────────────────────────────
+.claude/
+.vscode/
+.idea/
+
 # ── Misc ─────────────────────────────────────────────────────────────────────
 .DS_Store
 *.log
