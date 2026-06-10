@@ -135,8 +135,8 @@ function OptimizerInner() {
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <div className="grid flex-1 grid-cols-1 lg:grid-cols-[320px_1fr]">
-        {/* Sidebar */}
-        <aside className="flex flex-col gap-5 border-b border-[var(--border)] bg-[var(--surface)] p-5 lg:border-b-0 lg:border-r">
+        {/* Sidebar — below the chart on mobile, left column on desktop */}
+        <aside className="order-2 flex flex-col gap-5 border-t border-[var(--border)] bg-[var(--surface)] p-5 lg:order-1 lg:border-t-0 lg:border-r">
           <div className="text-xs font-bold uppercase tracking-wider text-[var(--primary-light)]">
             Selection &amp; Design Criteria
           </div>
@@ -171,33 +171,21 @@ function OptimizerInner() {
         </aside>
 
         {/* Main */}
-        <main className="flex flex-col gap-5 overflow-y-auto p-6">
-          <header className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-[var(--primary)]">
-                Pareto Front for Selected Criteria
-              </h1>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">
-                3D trade-off surface: CO₂ · Cost · Strength. Rotate, zoom and hover any
-                point for its mix proportions.
-              </p>
-            </div>
+        <main className="order-1 flex flex-col gap-5 overflow-y-auto p-6 lg:order-2">
+          <header className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-2xl font-bold text-[var(--primary)]">
+              Pareto Front for Selected Criteria
+            </h1>
             <span className="rounded-full border border-sky-300 bg-[var(--primary-pale)] px-3 py-1 text-xs font-semibold text-[var(--primary-light)]">
               {result ? `${result.total_count} Candidates` : "Loading…"}
             </span>
           </header>
 
-          <StatsStrip result={result} />
-
+          {/* 3D chart — kept at the top, above the stat cards */}
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-md">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                3D Pareto Front Visualization
-              </span>
-              {loading && (
-                <span className="text-xs text-[var(--text-muted)]">updating…</span>
-              )}
-            </div>
+            {loading && (
+              <div className="mb-2 text-right text-xs text-[var(--text-muted)]">updating…</div>
+            )}
             {error ? (
               <div className="flex h-[560px] items-center justify-center rounded-lg bg-[var(--surface-2)] px-6 text-center text-sm text-red-500">
                 {error}
@@ -219,6 +207,8 @@ function OptimizerInner() {
               </div>
             )}
           </div>
+
+          <StatsStrip result={result} />
 
           <InsightsCard weights={weights} bestMix={result?.best_mix ?? null} />
         </main>

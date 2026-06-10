@@ -14,6 +14,7 @@
   --primary-light: #2e6da4;
   --primary-pale: #eef4fb;
   --accent: #0ea5e9;
+  --nav: #1a3a5c; /* top navbar — dark navy in both themes */
 }
 
 .dark {
@@ -27,6 +28,7 @@
   --primary-light: #5fa8e0;
   --primary-pale: #18283f;
   --accent: #38bdf8;
+  --nav: #0f1c2e; /* slightly lighter than the dark page bg, stays dark */
 }
 
 @theme inline {
