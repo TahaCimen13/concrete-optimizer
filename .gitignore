@@ -1,0 +1,27 @@
+# ── Secrets (NEVER commit) ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# ── Python / backend ─────────────────────────────────────────────────────────
+backend/.venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+# Regenerable at build time (dataset downloaded, model trained):
+backend/data/
+backend/models/
+# Per-user uploaded datasets/models (runtime state):
+backend/storage/
+
+# ── Node / frontend ──────────────────────────────────────────────────────────
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/.vercel/
+frontend/next-env.d.ts
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+.DS_Store
+*.log

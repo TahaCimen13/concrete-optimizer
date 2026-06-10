@@ -1,0 +1,22 @@
+# Render Blueprint — deploys the FastAPI backend as a Docker web service.
+# (The Next.js frontend is deployed separately on Vercel.)
+#
+# Usage: push this repo to GitHub, then in Render → "New +" → "Blueprint" and
+# select the repo. Render builds backend/Dockerfile (dataset + model are baked
+# in at build time, so the service runs without external setup).
+services:
+  - type: web
+    name: concretedss-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    # NOTE: the free plan has no persistent disk, so per-user uploaded datasets
+    # are lost on restart/redeploy (the default UCI model is always available).
+    # For persistent uploads, upgrade the plan and add:
+    #   disk:
+    #     name: storage
+    #     mountPath: /app/storage
+    #     sizeGB: 1

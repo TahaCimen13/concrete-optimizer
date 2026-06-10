@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (toggled by adding `.dark` on <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #f0f4f8;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --border: #d1dce8;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --primary: #1a3a5c;
+  --primary-light: #2e6da4;
+  --primary-pale: #eef4fb;
+  --accent: #0ea5e9;
+}
+
+.dark {
+  --background: #0b1220;
+  --surface: #121c2e;
+  --surface-2: #0f1827;
+  --border: #25344a;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --primary: #cfe2f5;
+  --primary-light: #5fa8e0;
+  --primary-pale: #18283f;
+  --accent: #38bdf8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border-app: var(--border);
+  --color-text-app: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-pale: var(--primary-pale);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-geist-sans), "Segoe UI", system-ui, Arial, sans-serif;
+}
+
+/* Range slider styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  border: 2px solid var(--surface);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+input[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.15);
+  background: var(--accent);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  border: 2px solid var(--surface);
+  cursor: pointer;
+}
