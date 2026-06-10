@@ -70,55 +70,55 @@ class ConcreteProblem(Problem):
         ])
 
 
-def _build_mix(model, comps: np.ndarray, age: float, is_pareto: bool) -> dict:
-    mix = {c: float(comps[I[c]]) for c in config.COMPONENTS}
-    d = {DISPLAY[c]: round(mix[c], 1) for c in config.COMPONENTS}
-    d.update({
-        "CO2 (kg/m3)": round(emissions.co2(mix), 2),
-        "Cost ($/m3)": round(emissions.cost(mix), 2),
-        "Strength (MPa)": round(model_mod.predict_one(model, mix, age), 2),
-        "Age (day)": age,
-        "is_pareto": is_pareto,
-    })
-    return d
-
-
-def _real_feasible(ws, age, min_strength, wc_min, wc_max) -> list[dict]:
-    """Active-dataset mixes (at the given age) satisfying the constraints."""
-    df = ws.df
-    sub = df[df["age"] == age]
-    if len(sub) < 20:
-        sub = df
+def _rows_from_arrays(comps: np.ndarray, strength: np.ndarray, ages, is_pareto: bool) -> list[dict]:
+    """Build mix dicts from arrays — emissions are vectorized (no per-row model calls)."""
+    if comps.shape[0] == 0:
+        return []
+    co2 = emissions.co2_vec(comps)
+    cost = emissions.cost_vec(comps)
+    age_arr = np.full(comps.shape[0], ages) if np.isscalar(ages) else ages
     rows = []
-    for _, r in sub.iterrows():
-        cement, water = r["cement"], r["water"]
-        if cement <= 0:
-            continue
-        wc = water / cement
-        binder = cement + r["slag"] + r["fly_ash"]
-        density = sum(r[c] for c in config.COMPONENTS)
-        if not (wc_min <= wc <= wc_max):
-            continue
-        if not (config.BINDER_MIN <= binder <= config.BINDER_MAX):
-            continue
-        if not (config.DENSITY_MIN <= density <= config.DENSITY_MAX):
-            continue
-        if r["strength"] < min_strength:
-            continue
-        mix = {c: float(r[c]) for c in config.COMPONENTS}
-        d = {DISPLAY[c]: round(mix[c], 1) for c in config.COMPONENTS}
+    for i in range(comps.shape[0]):
+        d = {DISPLAY[c]: round(float(comps[i, j]), 1) for j, c in enumerate(config.COMPONENTS)}
         d.update({
-            "CO2 (kg/m3)": round(emissions.co2(mix), 2),
-            "Cost ($/m3)": round(emissions.cost(mix), 2),
-            "Strength (MPa)": round(float(r["strength"]), 2),
-            "Age (day)": float(r["age"]),
-            "is_pareto": False,
+            "CO2 (kg/m3)": round(float(co2[i]), 2),
+            "Cost ($/m3)": round(float(cost[i]), 2),
+            "Strength (MPa)": round(float(strength[i]), 2),
+            "Age (day)": float(age_arr[i]),
+            "is_pareto": is_pareto,
         })
         rows.append(d)
     return rows
 
 
-def _run_nsga(ws, age, min_strength, wc_min, wc_max, pop=100, n_gen=60) -> list[dict]:
+def _real_feasible(ws, age, min_strength, wc_min, wc_max) -> list[dict]:
+    """Active-dataset mixes (at the given age) satisfying the constraints (vectorized)."""
+    df = ws.df
+    sub = df[df["age"] == age]
+    if len(sub) < 20:
+        sub = df
+
+    comps = sub[config.COMPONENTS].to_numpy()
+    cement = comps[:, I["cement"]]
+    water = comps[:, I["water"]]
+    binder = cement + comps[:, I["slag"]] + comps[:, I["fly_ash"]]
+    density = comps.sum(axis=1)
+    strength = sub["strength"].to_numpy()
+    ages = sub["age"].to_numpy()
+    with np.errstate(divide="ignore", invalid="ignore"):
+        wc = np.where(cement > 0, water / cement, np.inf)
+
+    mask = (
+        (cement > 0)
+        & (wc >= wc_min) & (wc <= wc_max)
+        & (binder >= config.BINDER_MIN) & (binder <= config.BINDER_MAX)
+        & (density >= config.DENSITY_MIN) & (density <= config.DENSITY_MAX)
+        & (strength >= min_strength)
+    )
+    return _rows_from_arrays(comps[mask], strength[mask], ages[mask], is_pareto=False)
+
+
+def _run_nsga(ws, age, min_strength, wc_min, wc_max, pop=80, n_gen=40) -> list[dict]:
     xl = np.array([ws.bounds[c][0] for c in config.COMPONENTS])
     xu = np.array([ws.bounds[c][1] for c in config.COMPONENTS])
     problem = ConcreteProblem(xl, xu, ws.model, age, min_strength, wc_min, wc_max)
@@ -126,7 +126,8 @@ def _run_nsga(ws, age, min_strength, wc_min, wc_max, pop=100, n_gen=60) -> list[
     if res.X is None:
         return []
     X = np.atleast_2d(res.X)
-    return [_build_mix(ws.model, X[i], age, True) for i in range(X.shape[0])]
+    strength = model_mod.predict_batch(ws.model, X, age)  # one batched prediction
+    return _rows_from_arrays(X, strength, age, is_pareto=True)
 
 
 def _compute(ws, age, min_strength, wc_min, wc_max) -> dict:
