@@ -1,15 +1,19 @@
 import { PrismaClient } from "@prisma/client";
 
-// On serverless (Vercel), each function instance opens its own Prisma pool.
-// Without a cap, many instances quickly exhaust Supabase's free connection
-// pooler → intermittent "Registration failed" / DB errors. Cap each instance to
-// a single connection (the recommended serverless + pgbouncer setting).
+// Force the two flags Supabase + Prisma need on serverless, regardless of how
+// the env value was entered:
+//   pgbouncer=true     → Prisma stops using named prepared statements, which
+//                        collide under the transaction-mode pooler
+//                        (PostgresError 42P05 "prepared statement already exists").
+//   connection_limit=1 → each function instance uses one connection, so many
+//                        instances don't exhaust the free pooler.
 function databaseUrl(): string | undefined {
   let url = process.env.DATABASE_URL;
   if (!url) return url;
-  if (!/[?&]connection_limit=/.test(url)) {
-    url += (url.includes("?") ? "&" : "?") + "connection_limit=1";
-  }
+  const extra: string[] = [];
+  if (!/[?&]pgbouncer=/.test(url)) extra.push("pgbouncer=true");
+  if (!/[?&]connection_limit=/.test(url)) extra.push("connection_limit=1");
+  if (extra.length) url += (url.includes("?") ? "&" : "?") + extra.join("&");
   return url;
 }
 
